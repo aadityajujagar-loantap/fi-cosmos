@@ -1,112 +1,186 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Collapsible } from '@/components/ui/collapsible';
-import { ExternalLink } from '@/components/external-link';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Fonts } from '@/constants/theme';
+import { Colors } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { demoApi } from '@/services/demo-api';
+import { useDemoStore } from '@/store/use-demo-store';
+import type { DemoTask } from '@/types/demo';
 
-export default function TabTwoScreen() {
+const priorityColor = {
+  High: 'danger',
+  Medium: 'warning',
+  Low: 'success',
+} as const;
+
+export default function FlowScreen() {
+  const colorScheme = useColorScheme() ?? 'light';
+  const palette = Colors[colorScheme];
+  const [tasks, setTasks] = useState<DemoTask[] | null>(null);
+  const completedTaskIds = useDemoStore((state) => state.completedTaskIds);
+  const toggleTask = useDemoStore((state) => state.toggleTask);
+  const resetDemo = useDemoStore((state) => state.resetDemo);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    demoApi.getTasks().then((data) => {
+      if (isMounted) {
+        setTasks(data);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const completionLabel = useMemo(() => {
+    if (!tasks?.length) {
+      return '0%';
+    }
+
+    return `${Math.round((completedTaskIds.length / tasks.length) * 100)}%`;
+  }, [completedTaskIds.length, tasks]);
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-      headerImage={
-        <IconSymbol
-          size={310}
-          color="#808080"
-          name="chevron.left.forwardslash.chevron.right"
-          style={styles.headerImage}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText
-          type="title"
-          style={{
-            fontFamily: Fonts.rounded,
-          }}>
-          Explore
-        </ThemedText>
-      </ThemedView>
-      <ThemedText>This app includes example code to help you get started.</ThemedText>
-      <Collapsible title="File-based routing">
-        <ThemedText>
-          This app has two screens:{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/explore.tsx</ThemedText>
-        </ThemedText>
-        <ThemedText>
-          The layout file in <ThemedText type="defaultSemiBold">app/(tabs)/_layout.tsx</ThemedText>{' '}
-          sets up the tab navigator.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/router/introduction">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Android, iOS, and web support">
-        <ThemedText>
-          You can open this project on Android, iOS, and the web. To open the web version, press{' '}
-          <ThemedText type="defaultSemiBold">w</ThemedText> in the terminal running this project.
-        </ThemedText>
-      </Collapsible>
-      <Collapsible title="Images">
-        <ThemedText>
-          For static images, you can use the <ThemedText type="defaultSemiBold">@2x</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">@3x</ThemedText> suffixes to provide files for
-          different screen densities
-        </ThemedText>
-        <Image
-          source={require('@/assets/images/react-logo.png')}
-          style={{ width: 100, height: 100, alignSelf: 'center' }}
-        />
-        <ExternalLink href="https://reactnative.dev/docs/images">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Light and dark mode components">
-        <ThemedText>
-          This template has light and dark mode support. The{' '}
-          <ThemedText type="defaultSemiBold">useColorScheme()</ThemedText> hook lets you inspect
-          what the user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Animations">
-        <ThemedText>
-          This template includes an example of an animated component. The{' '}
-          <ThemedText type="defaultSemiBold">components/HelloWave.tsx</ThemedText> component uses
-          the powerful{' '}
-          <ThemedText type="defaultSemiBold" style={{ fontFamily: Fonts.mono }}>
-            react-native-reanimated
-          </ThemedText>{' '}
-          library to create a waving hand animation.
-        </ThemedText>
-        {Platform.select({
-          ios: (
-            <ThemedText>
-              The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
-              component provides a parallax effect for the header image.
-            </ThemedText>
-          ),
-        })}
-      </Collapsible>
-    </ParallaxScrollView>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={styles.header}>
+          <ThemedText type="title">Demo flow</ThemedText>
+          <ThemedText style={{ color: palette.muted }}>
+            Tap tasks to complete them. The state persists locally for repeat demos.
+          </ThemedText>
+        </View>
+
+        <View style={[styles.progressCard, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+          <View>
+            <ThemedText style={{ color: palette.muted }}>Completion</ThemedText>
+            <ThemedText type="subtitle">{completionLabel}</ThemedText>
+          </View>
+          <Pressable
+            onPress={resetDemo}
+            style={[styles.resetButton, { borderColor: palette.border, backgroundColor: palette.background }]}>
+            <ThemedText type="defaultSemiBold">Reset demo</ThemedText>
+          </Pressable>
+        </View>
+
+        {!tasks ? (
+          <View style={[styles.loadingCard, { backgroundColor: palette.surface }]}>
+            <ActivityIndicator color={palette.tint} />
+            <ThemedText style={{ color: palette.muted }}>Preparing task flow</ThemedText>
+          </View>
+        ) : (
+          <View style={styles.taskList}>
+            {tasks.map((task, index) => {
+              const isComplete = completedTaskIds.includes(task.id);
+              const priorityKey = priorityColor[task.priority];
+
+              return (
+                <Pressable
+                  key={task.id}
+                  onPress={() => toggleTask(task.id)}
+                  style={[
+                    styles.taskCard,
+                    {
+                      backgroundColor: palette.surface,
+                      borderColor: isComplete ? palette.tint : palette.border,
+                    },
+                  ]}>
+                  <View
+                    style={[
+                      styles.stepBadge,
+                      {
+                        backgroundColor: isComplete ? palette.tint : palette.background,
+                        borderColor: isComplete ? palette.tint : palette.border,
+                      },
+                    ]}>
+                    <ThemedText
+                      type="defaultSemiBold"
+                      lightColor={isComplete ? '#FFFFFF' : palette.text}
+                      darkColor={isComplete ? '#FFFFFF' : palette.text}>
+                      {isComplete ? 'Done' : String(index + 1)}
+                    </ThemedText>
+                  </View>
+
+                  <View style={styles.taskBody}>
+                    <View style={styles.taskHeader}>
+                      <ThemedText type="defaultSemiBold">{task.title}</ThemedText>
+                      <ThemedText style={{ color: palette[priorityKey] }}>{task.priority}</ThemedText>
+                    </View>
+                    <ThemedText style={{ color: palette.muted }}>Owner: {task.owner}</ThemedText>
+                    <ThemedText style={{ color: palette.muted }}>Due: {task.due}</ThemedText>
+                  </View>
+                </Pressable>
+              );
+            })}
+          </View>
+        )}
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
+  safeArea: {
+    flex: 1,
   },
-  titleContainer: {
-    flexDirection: 'row',
+  content: {
+    gap: 16,
+    padding: 20,
+    paddingBottom: 32,
+  },
+  header: {
     gap: 8,
+  },
+  progressCard: {
+    alignItems: 'center',
+    borderRadius: 8,
+    borderWidth: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: 16,
+  },
+  resetButton: {
+    borderRadius: 8,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  loadingCard: {
+    alignItems: 'center',
+    borderRadius: 8,
+    gap: 12,
+    padding: 24,
+  },
+  taskList: {
+    gap: 12,
+  },
+  taskCard: {
+    alignItems: 'flex-start',
+    borderRadius: 8,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 12,
+    padding: 16,
+  },
+  stepBadge: {
+    alignItems: 'center',
+    borderRadius: 8,
+    borderWidth: 1,
+    height: 44,
+    justifyContent: 'center',
+    minWidth: 44,
+    paddingHorizontal: 8,
+  },
+  taskBody: {
+    flex: 1,
+    gap: 6,
+  },
+  taskHeader: {
+    alignItems: 'flex-start',
+    gap: 6,
   },
 });

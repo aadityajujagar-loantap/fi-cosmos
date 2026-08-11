@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "frontend",
-    "slug": "frontend",
+    "name": "FI iFlow",
+    "slug": "fi-iflow",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "frontend",
+    "scheme": "fi-iflow",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {

@@ -1,98 +1,245 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import { Colors } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { demoTasks } from '@/mocks/demo-data';
+import { demoApi } from '@/services/demo-api';
+import { useDemoStore } from '@/store/use-demo-store';
 
-export default function HomeScreen() {
+type DashboardData = Awaited<ReturnType<typeof demoApi.getDashboard>>;
+
+export default function DashboardScreen() {
+  const colorScheme = useColorScheme() ?? 'light';
+  const palette = Colors[colorScheme];
+  const [dashboard, setDashboard] = useState<DashboardData | null>(null);
+  const selectedClientId = useDemoStore((state) => state.selectedClientId);
+  const completedTaskIds = useDemoStore((state) => state.completedTaskIds);
+  const selectClient = useDemoStore((state) => state.selectClient);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    demoApi.getDashboard().then((data) => {
+      if (isMounted) {
+        setDashboard(data);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const completedCount = completedTaskIds.length;
+  const selectedClient = dashboard?.clients.find((client) => client.id === selectedClientId);
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={styles.header}>
+          <ThemedText type="title">FI iFlow</ThemedText>
+          <ThemedText style={{ color: palette.muted }}>
+            Frontend-only demo workspace for client walkthroughs.
+          </ThemedText>
+        </View>
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+        {!dashboard ? (
+          <View style={[styles.loadingCard, { backgroundColor: palette.surface }]}>
+            <ActivityIndicator color={palette.tint} />
+            <ThemedText style={{ color: palette.muted }}>Loading demo data</ThemedText>
+          </View>
+        ) : (
+          <>
+            <View style={styles.metricGrid}>
+              {dashboard.metrics.map((metric) => (
+                <View
+                  key={metric.id}
+                  style={[styles.metricCard, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+                  <ThemedText style={{ color: palette.muted }}>{metric.label}</ThemedText>
+                  <ThemedText type="subtitle">{metric.value}</ThemedText>
+                  <ThemedText style={{ color: palette.success }}>{metric.delta}</ThemedText>
+                </View>
+              ))}
+            </View>
+
+            <View style={[styles.section, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+              <View style={styles.sectionHeader}>
+                <ThemedText type="subtitle">Client focus</ThemedText>
+                <ThemedText style={{ color: palette.muted }}>{dashboard.clients.length} accounts</ThemedText>
+              </View>
+
+              <View style={styles.clientList}>
+                {dashboard.clients.map((client) => {
+                  const isSelected = client.id === selectedClientId;
+
+                  return (
+                    <Pressable
+                      key={client.id}
+                      onPress={() => selectClient(client.id)}
+                      style={[
+                        styles.clientRow,
+                        {
+                          backgroundColor: isSelected ? palette.tint : palette.background,
+                          borderColor: isSelected ? palette.tint : palette.border,
+                        },
+                      ]}>
+                      <View style={styles.clientCopy}>
+                        <ThemedText
+                          type="defaultSemiBold"
+                          lightColor={isSelected ? '#FFFFFF' : undefined}
+                          darkColor={isSelected ? '#FFFFFF' : undefined}>
+                          {client.name}
+                        </ThemedText>
+                        <ThemedText
+                          lightColor={isSelected ? '#DBEAFE' : palette.muted}
+                          darkColor={isSelected ? '#DBEAFE' : palette.muted}>
+                          {client.segment}
+                        </ThemedText>
+                      </View>
+                      <View style={styles.clientMeta}>
+                        <ThemedText
+                          type="defaultSemiBold"
+                          lightColor={isSelected ? '#FFFFFF' : undefined}
+                          darkColor={isSelected ? '#FFFFFF' : undefined}>
+                          {client.balance}
+                        </ThemedText>
+                        <ThemedText
+                          lightColor={isSelected ? '#DBEAFE' : palette.muted}
+                          darkColor={isSelected ? '#DBEAFE' : palette.muted}>
+                          {client.status}
+                        </ThemedText>
+                      </View>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+
+            <View style={styles.summaryGrid}>
+              <View style={[styles.summaryCard, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+                <ThemedText style={{ color: palette.muted }}>Selected account</ThemedText>
+                <ThemedText type="defaultSemiBold">{selectedClient?.name ?? 'Choose a client'}</ThemedText>
+              </View>
+              <View style={[styles.summaryCard, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+                <ThemedText style={{ color: palette.muted }}>Task progress</ThemedText>
+                <ThemedText type="defaultSemiBold">
+                  {completedCount} of {demoTasks.length} complete
+                </ThemedText>
+              </View>
+            </View>
+
+            <View style={[styles.section, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+              <ThemedText type="subtitle">Recent activity</ThemedText>
+              {dashboard.activity.map((activity) => (
+                <View key={activity.id} style={[styles.activityRow, { borderColor: palette.border }]}>
+                  <View style={[styles.activityDot, { backgroundColor: palette.tint }]} />
+                  <View style={styles.activityCopy}>
+                    <ThemedText type="defaultSemiBold">{activity.title}</ThemedText>
+                    <ThemedText style={{ color: palette.muted }}>{activity.detail}</ThemedText>
+                  </View>
+                  <ThemedText style={{ color: palette.muted }}>{activity.time}</ThemedText>
+                </View>
+              ))}
+            </View>
+          </>
+        )}
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
+  safeArea: {
+    flex: 1,
+  },
+  content: {
+    gap: 16,
+    padding: 20,
+    paddingBottom: 32,
+  },
+  header: {
+    gap: 8,
+  },
+  loadingCard: {
     alignItems: 'center',
-    gap: 8,
+    borderRadius: 8,
+    gap: 12,
+    padding: 24,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  metricGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  metricCard: {
+    borderRadius: 8,
+    borderWidth: 1,
+    flexGrow: 1,
+    gap: 6,
+    minWidth: 150,
+    padding: 16,
+  },
+  section: {
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 14,
+    padding: 16,
+  },
+  sectionHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  clientList: {
+    gap: 10,
+  },
+  clientRow: {
+    alignItems: 'center',
+    borderRadius: 8,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 12,
+    justifyContent: 'space-between',
+    padding: 14,
+  },
+  clientCopy: {
+    flex: 1,
+    gap: 2,
+  },
+  clientMeta: {
+    alignItems: 'flex-end',
+    gap: 2,
+  },
+  summaryGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  summaryCard: {
+    borderRadius: 8,
+    borderWidth: 1,
+    flex: 1,
+    gap: 4,
+    minWidth: 150,
+    padding: 16,
+  },
+  activityRow: {
+    alignItems: 'center',
+    borderTopWidth: 1,
+    flexDirection: 'row',
+    gap: 12,
+    paddingTop: 12,
+  },
+  activityDot: {
+    borderRadius: 5,
+    height: 10,
+    width: 10,
+  },
+  activityCopy: {
+    flex: 1,
+    gap: 2,
   },
 });
