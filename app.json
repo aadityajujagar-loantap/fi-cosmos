@@ -9,10 +9,22 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Allow FI iFlow to capture customer photos and verification documents.",
+        "NSLocationWhenInUseUsageDescription": "Allow FI iFlow to show your current location on service maps.",
+        "NSMicrophoneUsageDescription": "Allow FI iFlow to record customer verification voice remarks.",
+        "NSPhotoLibraryUsageDescription": "Allow FI iFlow to upload verification photos and documents."
+      }
     },
     "android": {
       "package": "adi.cosdemo.iflow.fi",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
