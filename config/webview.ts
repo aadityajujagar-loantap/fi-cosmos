@@ -8,13 +8,13 @@ const normalizeBaseUrl = (url: string) => url.trim().replace(/\/+$/, '');
 export const getWebsiteBaseUrl = () => {
   const envUrl = process.env.EXPO_PUBLIC_WEBSITE_BASE_URL;
 
-  // Automatically resolve local Vite server in development
-  if (__DEV__) {
-    // If the user specified a custom local IP override in .env, prioritize it
-    if (envUrl && !envUrl.includes('vercel.app')) {
-      return normalizeBaseUrl(envUrl);
-    }
+  // 1. If an environment variable is explicitly provided, prioritize it
+  if (envUrl) {
+    return normalizeBaseUrl(envUrl);
+  }
 
+  // 2. If no environment variable is provided, resolve automatically in development
+  if (__DEV__) {
     // On PC web browser (pressing 'w')
     if (Platform.OS === 'web') {
       return 'http://localhost:5173';
@@ -33,8 +33,8 @@ export const getWebsiteBaseUrl = () => {
     return 'http://10.0.2.2:5173';
   }
 
-  // Production build
-  return normalizeBaseUrl(envUrl || DEFAULT_WEBSITE_BASE_URL);
+  // Production fallback
+  return DEFAULT_WEBSITE_BASE_URL;
 };
 
 export const agentWebViewConfig = {
