@@ -8,7 +8,7 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "lint": "expo lint app config scripts"
+    "lint": "expo lint app components config scripts"
   },
   "dependencies": {
     "@react-navigation/native": "^7.1.8",

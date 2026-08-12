@@ -1,15 +1,15 @@
-const DEFAULT_WEBSITE_BASE_URL = 'http://localhost:5173';
-const AGENT_ENDPOINT = '/agent';
+const DEFAULT_WEBSITE_BASE_URL = 'https://fi-cosmos.vercel.app';
 
 const normalizeBaseUrl = (url: string) => url.trim().replace(/\/+$/, '');
 
+export const getWebsiteBaseUrl = () =>
+  normalizeBaseUrl(process.env.EXPO_PUBLIC_WEBSITE_BASE_URL || DEFAULT_WEBSITE_BASE_URL);
+
 export const agentWebViewConfig = {
   role: 'agent',
-  baseUrl: normalizeBaseUrl(process.env.EXPO_PUBLIC_WEBSITE_BASE_URL || DEFAULT_WEBSITE_BASE_URL),
-  endpoint: AGENT_ENDPOINT,
 } as const;
 
-export const getAgentWebViewUrl = () => `${agentWebViewConfig.baseUrl}${agentWebViewConfig.endpoint}`;
+export const getAgentWebViewUrl = () => getWebsiteBaseUrl();
 
 export const isAllowedAgentUrl = (url: string) => {
   if (url === 'about:blank') {
@@ -19,12 +19,8 @@ export const isAllowedAgentUrl = (url: string) => {
   try {
     const target = new URL(url);
     const agentUrl = new URL(getAgentWebViewUrl());
-    const agentPath = agentUrl.pathname.replace(/\/+$/, '');
 
-    return (
-      target.origin === agentUrl.origin &&
-      (target.pathname === agentPath || target.pathname.startsWith(`${agentPath}/`))
-    );
+    return target.origin === agentUrl.origin;
   } catch {
     return false;
   }
