@@ -8,7 +8,7 @@ Expo React Native WebView wrapper for the future mobile agent experience.
 - Single WebView route in `app/index.tsx`.
 - Agent wrapper config in `config/webview.ts`.
 - Mobile wrapper loads `EXPO_PUBLIC_WEBSITE_BASE_URL`.
-- Without an env var, it loads `https://fi-cosmos.vercel.app`.
+- Without an env var, it loads `https://fi-iflow.vercel.app`.
 - Navigation is limited to the configured website origin.
 - Web builds render the same URL in an iframe fallback so `react-native-webview` is only loaded on Android/iOS.
 
@@ -41,7 +41,7 @@ Press `w`.
 Optional manual override:
 
 ```bash
-EXPO_PUBLIC_WEBSITE_BASE_URL=https://fi-cosmos.vercel.app
+EXPO_PUBLIC_WEBSITE_BASE_URL=https://fi-iflow.vercel.app
 ```
 
 For local website development on a physical phone, use a reachable LAN URL instead of `localhost`:

@@ -1,4 +1,4 @@
-const DEFAULT_WEBSITE_BASE_URL = 'https://fi-cosmos.vercel.app';
+const DEFAULT_WEBSITE_BASE_URL = 'https://fi-iflow.vercel.app';
 
 const normalizeBaseUrl = (url: string) => url.trim().replace(/\/+$/, '');
 
@@ -9,7 +9,7 @@ export const agentWebViewConfig = {
   role: 'agent',
 } as const;
 
-export const getAgentWebViewUrl = () => getWebsiteBaseUrl();
+export const getAgentWebViewUrl = () => getWebsiteBaseUrl() + '/agent';
 
 export const isAllowedAgentUrl = (url: string) => {
   if (url === 'about:blank') {
