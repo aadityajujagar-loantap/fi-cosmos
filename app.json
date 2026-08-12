@@ -12,6 +12,7 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "adi.cosdemo.iflow.fi",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -44,6 +45,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "9e8909e3-1c84-4acb-8f63-427c94176b75"
+      }
     }
   }
 }
