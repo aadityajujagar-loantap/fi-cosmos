@@ -1,15 +1,14 @@
-# FI iFlow Frontend
+# FI iFlow Mobile
 
-Expo Router frontend-only demo app for client walkthroughs.
+Expo React Native WebView wrapper for the future mobile agent experience.
 
 ## What is included
 
 - Expo SDK 54 with file-based routing.
-- Static mock data in `mocks/`.
-- Mock async service layer in `services/`.
-- Typed app models in `types/`.
-- Local persisted state with Zustand and AsyncStorage in `store/`.
-- Clean demo screens under `app/(tabs)/`.
+- Single WebView route in `app/index.tsx`.
+- Agent wrapper config in `config/webview.ts`.
+- Mobile role loads `${EXPO_PUBLIC_WEBSITE_BASE_URL}/agent`.
+- Navigation is limited to the configured `/agent` path.
 
 ## Commands
 
@@ -17,7 +16,13 @@ Expo Router frontend-only demo app for client walkthroughs.
 npm install
 npm run lint
 npx tsc --noEmit --incremental false
-npm run web
+npm start
 ```
 
-The app does not require a backend. Update the mock data and service layer first, then replace the service implementation later when an API is available.
+Create `.env` or set the variable before starting Expo:
+
+```bash
+EXPO_PUBLIC_WEBSITE_BASE_URL=https://your-demo-domain.com
+```
+
+If the variable is not set, the wrapper defaults to `http://localhost:5173/agent` for local website development.
