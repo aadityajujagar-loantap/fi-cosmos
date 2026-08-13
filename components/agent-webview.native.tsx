@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { ActivityIndicator, Alert, Linking, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Alert, Linking, Platform, StyleSheet, View } from 'react-native';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -56,20 +56,30 @@ export function AgentWebView() {
     const fileUri = `${directory}${filename}`;
     const base64 = transfer.chunks.join('');
 
-    await FileSystem.writeAsStringAsync(fileUri, base64, {
-      encoding: FileSystem.EncodingType.Base64,
-    });
-
-    if (await Sharing.isAvailableAsync()) {
-      await Sharing.shareAsync(fileUri, {
-        dialogTitle: 'Save or share report PDF',
-        mimeType: 'application/pdf',
-        UTI: 'com.adobe.pdf',
+    try {
+      await FileSystem.writeAsStringAsync(fileUri, base64, {
+        encoding: FileSystem.EncodingType.Base64,
       });
-      return;
-    }
 
-    Alert.alert('Report ready', `PDF saved inside app storage as ${filename}.`);
+      let shareUri = fileUri;
+      if (Platform.OS === 'android') {
+        shareUri = await FileSystem.getContentUriAsync(fileUri);
+      }
+
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(shareUri, {
+          dialogTitle: 'Save or share report PDF',
+          mimeType: 'application/pdf',
+          UTI: 'com.adobe.pdf',
+        });
+        return;
+      }
+
+      Alert.alert('Report ready', `PDF saved inside app storage as ${filename}.`);
+    } catch (error) {
+      const errMsg = error instanceof Error ? error.message : String(error);
+      Alert.alert('Download failed', `Failed to write or share PDF: ${errMsg}`);
+    }
   };
 
   const handlePdfMessage = async (message: PdfBridgeMessage) => {
