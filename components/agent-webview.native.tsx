@@ -61,13 +61,8 @@ export function AgentWebView() {
         encoding: FileSystem.EncodingType.Base64,
       });
 
-      let shareUri = fileUri;
-      if (Platform.OS === 'android') {
-        shareUri = await FileSystem.getContentUriAsync(fileUri);
-      }
-
       if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(shareUri, {
+        await Sharing.shareAsync(fileUri, {
           dialogTitle: 'Save or share report PDF',
           mimeType: 'application/pdf',
           UTI: 'com.adobe.pdf',
