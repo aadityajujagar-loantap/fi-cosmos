@@ -1,6 +1,9 @@
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { useRef } from 'react';
+import { ActivityIndicator, Alert, Linking, StyleSheet, View } from 'react-native';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as Sharing from 'expo-sharing';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { WebView } from 'react-native-webview';
+import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 
 import { getAgentWebViewUrl, isAllowedAgentUrl } from '@/config/webview';
 
@@ -22,13 +25,109 @@ const disableZoomScript = `
   true;
 `;
 
+type PdfTransfer = {
+  chunks: string[];
+  filename: string;
+  received: number;
+  totalChunks: number;
+};
+
+type PdfBridgeMessage =
+  | { type: 'fi-iflow/pdf-download/start'; id: string; filename: string; totalChunks: number }
+  | { type: 'fi-iflow/pdf-download/chunk'; id: string; index: number; chunk: string }
+  | { type: 'fi-iflow/pdf-download/complete'; id: string };
+
+function safePdfFilename(filename: string) {
+  const normalized = filename.trim().replace(/[^a-zA-Z0-9._-]/g, '_');
+  return normalized.toLowerCase().endsWith('.pdf') ? normalized : `${normalized || 'FI_Report'}.pdf`;
+}
+
 export function AgentWebView() {
+  const pdfTransfersRef = useRef(new Map<string, PdfTransfer>());
+
+  const savePdfTransfer = async (transfer: PdfTransfer) => {
+    const directory = FileSystem.documentDirectory || FileSystem.cacheDirectory;
+    if (!directory) {
+      Alert.alert('Download failed', 'Device storage is not available.');
+      return;
+    }
+
+    const filename = safePdfFilename(transfer.filename);
+    const fileUri = `${directory}${filename}`;
+    const base64 = transfer.chunks.join('');
+
+    await FileSystem.writeAsStringAsync(fileUri, base64, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+
+    if (await Sharing.isAvailableAsync()) {
+      await Sharing.shareAsync(fileUri, {
+        dialogTitle: 'Save or share report PDF',
+        mimeType: 'application/pdf',
+        UTI: 'com.adobe.pdf',
+      });
+      return;
+    }
+
+    Alert.alert('Report ready', `PDF saved inside app storage as ${filename}.`);
+  };
+
+  const handlePdfMessage = async (message: PdfBridgeMessage) => {
+    if (message.type === 'fi-iflow/pdf-download/start') {
+      pdfTransfersRef.current.set(message.id, {
+        chunks: new Array(message.totalChunks).fill(''),
+        filename: message.filename,
+        received: 0,
+        totalChunks: message.totalChunks,
+      });
+      return;
+    }
+
+    const transfer = pdfTransfersRef.current.get(message.id);
+    if (!transfer) return;
+
+    if (message.type === 'fi-iflow/pdf-download/chunk') {
+      if (!transfer.chunks[message.index]) {
+        transfer.received += 1;
+      }
+      transfer.chunks[message.index] = message.chunk;
+      return;
+    }
+
+    if (transfer.received !== transfer.totalChunks || transfer.chunks.some((chunk) => !chunk)) {
+      Alert.alert('Download failed', 'Report data was incomplete. Please try again.');
+      pdfTransfersRef.current.delete(message.id);
+      return;
+    }
+
+    pdfTransfersRef.current.delete(message.id);
+    await savePdfTransfer(transfer);
+  };
+
+  const handleMessage = (event: WebViewMessageEvent) => {
+    try {
+      const message = JSON.parse(event.nativeEvent.data) as PdfBridgeMessage;
+      if (message.type?.startsWith('fi-iflow/pdf-download/')) {
+        void handlePdfMessage(message);
+      }
+    } catch {
+      // Ignore unrelated page messages.
+    }
+  };
+
+  const handleShouldStartLoad = (url: string) => {
+    if (isAllowedAgentUrl(url)) return true;
+    void Linking.openURL(url);
+    return false;
+  };
+
   return (
     <SafeAreaView style={styles.screen}>
       <WebView
         source={{ uri: getAgentWebViewUrl() }}
         originWhitelist={['http://*', 'https://*']}
-        onShouldStartLoadWithRequest={(request) => isAllowedAgentUrl(request.url)}
+        onMessage={handleMessage}
+        onShouldStartLoadWithRequest={(request) => handleShouldStartLoad(request.url)}
         startInLoadingState
         javaScriptEnabled
         domStorageEnabled
