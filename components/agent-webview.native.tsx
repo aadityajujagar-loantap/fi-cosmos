@@ -17,7 +17,8 @@ export function AgentWebView() {
         setSupportMultipleWindows={false}
         geolocationEnabled
         allowsInlineMediaPlayback
-        mediaCapturePermissionGrantType="grantIfSameHostElsePrompt"
+        mediaCapturePermissionGrantType="grant"
+        mediaPlaybackRequiresUserAction={false}
         renderLoading={() => (
           <View style={styles.centered}>
             <ActivityIndicator color="#111827" />
