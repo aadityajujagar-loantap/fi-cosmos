@@ -4,6 +4,24 @@ import { WebView } from 'react-native-webview';
 
 import { getAgentWebViewUrl, isAllowedAgentUrl } from '@/config/webview';
 
+const disableZoomScript = `
+  (function () {
+    var content = 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover';
+    var viewport = document.querySelector('meta[name="viewport"]');
+    if (!viewport) {
+      viewport = document.createElement('meta');
+      viewport.name = 'viewport';
+      document.head.appendChild(viewport);
+    }
+    viewport.setAttribute('content', content);
+    document.documentElement.style.webkitTextSizeAdjust = '100%';
+    if (document.body) {
+      document.body.style.webkitTextSizeAdjust = '100%';
+    }
+  })();
+  true;
+`;
+
 export function AgentWebView() {
   return (
     <SafeAreaView style={styles.screen}>
@@ -14,6 +32,12 @@ export function AgentWebView() {
         startInLoadingState
         javaScriptEnabled
         domStorageEnabled
+        injectedJavaScript={disableZoomScript}
+        injectedJavaScriptBeforeContentLoaded={disableZoomScript}
+        scalesPageToFit={false}
+        setBuiltInZoomControls={false}
+        setDisplayZoomControls={false}
+        textZoom={100}
         setSupportMultipleWindows={false}
         geolocationEnabled
         allowsInlineMediaPlayback
