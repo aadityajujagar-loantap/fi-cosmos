@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { ActivityIndicator, Alert, Linking, Platform, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Alert, Linking, StyleSheet, View } from 'react-native';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -131,6 +131,7 @@ export function AgentWebView() {
       <WebView
         source={{ uri: getAgentWebViewUrl() }}
         originWhitelist={['http://*', 'https://*']}
+        userAgent="fi-iflow-mobile-app"
         onMessage={handleMessage}
         onShouldStartLoadWithRequest={(request) => handleShouldStartLoad(request.url)}
         startInLoadingState
